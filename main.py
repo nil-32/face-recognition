@@ -33,6 +33,7 @@ class FaceRecognition:
         #print(self.known_face_names)
 
 
+
     def run_recognition(self):
 
         vid = cv2.VideoCapture(0)
@@ -67,6 +68,7 @@ class FaceRecognition:
                 with concurrent.futures.ThreadPoolExecutor() as executor :
                     executor.map(match_faces,self.face_encodings)
 
+
             self.process_current_frame = not self.process_current_frame
 
             for (t,r,b,l), name in zip(self.face_locations,self.face_names):
@@ -91,8 +93,3 @@ if __name__ == '__main__':
     fr = FaceRecognition()
     fr.run_recognition()
     print(fr.data)
-
-
-if __name__ == '__main__':
-    fr = FaceRecognition()
-    fr.run_recognition()
