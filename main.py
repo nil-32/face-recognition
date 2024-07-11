@@ -1,3 +1,6 @@
+import concurrent.futures
+import datetime
+
 import face_recognition
 import sys, os
 import cv2
@@ -11,9 +14,11 @@ class FaceRecognition:
     known_face_encodings = []
     known_face_names = []
     process_current_frame = True
+    data = {}
 
     def __init__(self):
         self.encode_faces()
+
 
     def encode_faces(self):
 
@@ -23,8 +28,11 @@ class FaceRecognition:
 
             self.known_face_encodings.append(face_encoding)
             self.known_face_names.append(image)
+            self.data.update({image: {"name":image.split(".")[0],"last attendence time" : "non"}})
+        print(self.data)
+        #print(self.known_face_names)
 
-        print(self.known_face_names)
+
     def run_recognition(self):
 
         vid = cv2.VideoCapture(0)
@@ -37,22 +45,28 @@ class FaceRecognition:
 
             if self.process_current_frame:
                 small_frame = cv2.resize(frame, (0,0),fx=0.25,fy=0.25)
-                rgb_small_frame = small_frame[:, :, ::-1]
 
-                self.face_locations = face_recognition.face_locations(rgb_small_frame)
-                #p1img = face_recognition.load_image_file(rgb_small_frame)
+                self.face_locations = face_recognition.face_locations(small_frame)
                 self.face_encodings = face_recognition.face_encodings(face_image=small_frame,known_face_locations= self.face_locations)
 
                 self.face_names = []
-                for face_encoding in self.face_encodings:
-                    matches = face_recognition.compare_faces(self.known_face_encodings,face_encoding)
-                    name= 'unknown'
+
+                def match_faces(face_encoding):
+                    matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
+                    name = 'unknown'
                     face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
                     best_match_index = np.argmin(face_distances)
 
                     if matches[best_match_index]:
                         name = self.known_face_names[best_match_index]
                     self.face_names.append(f'{name.split(".")[0]}')
+                    dt_string = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                    self.data[name] = {}
+                    self.data[name]["last attendence time"] = dt_string
+
+                with concurrent.futures.ThreadPoolExecutor() as executor :
+                    executor.map(match_faces,self.face_encodings)
+
             self.process_current_frame = not self.process_current_frame
 
             for (t,r,b,l), name in zip(self.face_locations,self.face_names):
@@ -71,6 +85,12 @@ class FaceRecognition:
 
         vid.release()
         cv2.destroyAllWindows()
+
+
+if __name__ == '__main__':
+    fr = FaceRecognition()
+    fr.run_recognition()
+    print(fr.data)
 
 
 if __name__ == '__main__':
