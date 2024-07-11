@@ -18,8 +18,7 @@ class FaceRecognition:
 
     def __init__(self):
         self.encode_faces()
-
-
+     
     def encode_faces(self):
 
         for image in os.listdir('my_db'):
