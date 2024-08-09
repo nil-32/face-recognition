@@ -21,7 +21,6 @@ class FaceRecognition:
     def __init__(self):
         self.encode_faces()
 
-
     def encode_faces(self):
 
         for image in os.listdir('my_db'):
@@ -31,28 +30,46 @@ class FaceRecognition:
             self.known_face_encodings.append(face_encoding)
             self.known_face_names.append(image)
             self.data.update({image: {"name":image.split(".")[0],"last attendance time" : "non"}})
+        
         print(self.data)
-        #print(self.known_face_names)
+        
+    def update_table(self, table):
 
+        for row in table.get_children():
+            table.delete(row)
+
+        table.column("# 1")
+
+        table.heading("# 1", text="name")
+
+        table.column("# 2", anchor=tk.NW)
+
+        table.heading("# 2", text="last attendance time")
+
+        for key in self.data.keys():
+            table.insert(parent='', text="key", index=tk.END,
+
+                         values=(self.data[key]["name"], self.data[key]["last attendance time"]))
+
+        table.column("#0", width=0, stretch=False)
+
+        table.update()
+
+        return table
 
     def run_recognition(self):
         root = tk.Tk()
         root.geometry("1100x500")
         label_widget = ttk.Label(root)
-        table = ttk.Treeview(root, columns=('name', 'last attendance'), show='headings')
-
-        table.column("# 1")
-        table.heading("# 1", text="name")
-        table.column("# 2", anchor=tk.NW)
-        table.heading("# 2", text="last attendance time")
-        root.columnconfigure(0,weight=1)
+        root.columnconfigure(0, weight=1)
         root.columnconfigure(1, weight=1)
-        for key in self.data.keys():
-            table.insert(parent='',text= "key",index= tk.END ,values= (self.data[key]['name'], self.data[key]['last attendance time']))
-        table.column("#0", width=0, stretch=False)
-
-        label_widget.grid( column=0 , padx=5, pady=5)
-        table.grid(column= 1,row=0)
+        table = ttk.Treeview(root, columns=('name', 'last attendance'), show='headings')
+        table.heading('name', text='Name')
+        table.heading('last attendance', text='Last Attendance Time')
+        table.column('name', width=150)
+        table.column('last attendance', width=200)
+        label_widget.grid(column=0, padx=5, pady=5)
+        table.grid(column=1, row=0)
         vid = cv2.VideoCapture(0)
 
         if not vid.isOpened():
@@ -77,21 +94,13 @@ class FaceRecognition:
 
                     if matches[best_match_index]:
                         name = self.known_face_names[best_match_index]
-                    self.face_names.append(f'{name.split(".")[0]}')
+                    self.face_names.append(f'{name}')
                     dt_string = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                    self.data[name] = {}
                     self.data[name]["last attendence time"] = dt_string
-                    print(self.data)
-                    '''if name != "unknown":
-                        panelC = tk.Label(image=cv2.imread(f"./my_db/{name}"))'''
-                    table.insert(parent='', text="key", index=tk.END, values=(self.data[name]['name'], dt_string))
-                    table.grid(column= 1,row=0)
-                    table.configure()
-                    table.update()
-                    root.update()
 
                 with concurrent.futures.ThreadPoolExecutor() as executor :
                     executor.map(match_faces,self.face_encodings)
+                self.update_table(table)
 
             self.process_current_frame = not self.process_current_frame
 
